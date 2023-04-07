@@ -1,36 +1,26 @@
-import { MongoClient } from 'mongodb';
-// const { MongoClient } = require('mongodb');
+import redisClient from './redis';
+import dbClient from './db';
 
-const DB_HOST = process.env.DB_HOST || 'localhost';
-const DB_PORT = process.env.DB_PORT || 27017;
-const DB_DATABASE = process.env.DB_DATABASE || 'files_manager';
-const url = `mongodb://${DB_HOST}:${DB_PORT}`;
-
-class DBClient {
-  constructor() {
-    MongoClient.connect(url, { useUnifiedTopology: true }, (err, client) => {
-      if (!err) {
-        this.db = client.db(DB_DATABASE);
-        this.users = this.db.collection('users');
-        this.files = this.db.collection('files');
-      } else {
-        console.log(err.message);
-        this.db = false;
-      }
-    });
-  }
-
-  isAlive() { return !!this.db; }
-
-  async nbUsers() { return this.users.countDocuments(); }
-
-  async nbFiles() { return this.files.countDocuments(); }
-
-  async getUser(query) {
-    const user = await this.db.collection('users').findOne(query);
-    return user;
-  }
+async function getAuthToken(request) {
+  const token = request.headers['x-token'];
+  return `auth_${token}`;
 }
 
-const dbClient = new DBClient();
-module.exports = dbClient;
+// checks authentication against verified information
+// returns userId of user
+async function findUserIdByToken(request) {
+  const key = await getAuthToken(request);
+  const userId = await redisClient.get(key);
+  return userId || null;
+}
+
+// Gets user by userId
+// Returns exactly the first user found
+async function findUserById(userId) {
+  const userExistsArray = await dbClient.users.find(`ObjectId("${userId}")`).toArray();
+  return userExistsArray[0] || null;
+}
+
+export {
+  findUserIdByToken, findUserById,
+};
