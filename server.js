@@ -1,21 +1,15 @@
-// Import required modules
-const express = require('express');
-const AppController = require('./controllers/AppController');
+import express from 'express';
+import indexRouter from './routes/index';
 
-// Create Express app
 const app = express();
 
-// Set port
 const port = process.env.PORT || 5000;
 
-// Load all routes from routes/index.js
-app.use('/', require('./routes'));
+app.use(express.json());
 
-// Define endpoints in AppController.js
-app.get('/status', AppController.getStatus);
-app.get('/stats', AppController.getStats);
-
-// Start server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+app.use('/', indexRouter);
+
+module.exports = app;
